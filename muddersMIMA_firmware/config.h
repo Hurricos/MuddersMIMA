@@ -17,4 +17,11 @@
 
 	#define INVERT_JOYSTICK_DIRECTION //comment to mirror joystick assist and regen directions
 
+  #define CLUTCH_DELAY   250 // Delay before commanding assist after clutch depressed. 
+  #define CLUTCH_RAMP    250 // Duration of ramp-up after CLUTCH_DELAY.
+
+  const unsigned long DERATE_UNDER_RPM = 1900; //Max assist/regen limited under this RPM. Adjust as needed. 
+  const unsigned long DERATE_PERCENT = 90; //Percentage of max power. Default 80%, or derated by 20%.
+
+
 #endif

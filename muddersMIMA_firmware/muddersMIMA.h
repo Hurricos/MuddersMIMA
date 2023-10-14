@@ -31,4 +31,6 @@
   #include "brakeLights.h"
   #include "engine_signals.h"
 
+  static unsigned long clutchStartTime = 0;
+
 #endif
