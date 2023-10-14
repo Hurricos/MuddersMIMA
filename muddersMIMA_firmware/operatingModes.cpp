@@ -85,12 +85,23 @@ void mode_manualControl_new(void)
 			    useStoredJoystickValue = YES;
 		    }
 
-        // Check if the engine RPM is below threshhold
-        if (engineRPM < DERATE_UNDER_RPM)
-        {
-          // Remap joystick_percent from 100%
-          lowPowerLevel = map(lowPowerLevel, 0, joystick_percent, 0, DERATE_PERCENT);
-        }
+        #ifdef STACK_IS_60S
+          #ifdef SET_CURRENT_HACK_40
+          // Check if the engine RPM is below threshold
+            if (engineRPM < (DERATE_UNDER_RPM - 100)) {
+              // Remap joystick_percent to DERATE_PERCENT
+              lowPowerLevel = map(lowPowerLevel, 0, joystick_percent, 0, DERATE_PERCENT);
+            } else if (engineRPM < DERATE_UNDER_RPM) {
+              // Scale DERATE_PERCENT from its value to 100% as engineRPM approaches DERATE_UNDER_RPM
+              int scaledPercent = map(engineRPM, DERATE_UNDER_RPM - 100, DERATE_UNDER_RPM, DERATE_PERCENT, 100);
+              lowPowerLevel = map(lowPowerLevel, 0, joystick_percent, 0, scaledPercent);
+            }
+          #endif
+        #endif
+
+        #ifdef STACK_IS_48S
+        // If STACK_IS_48S is defined, no derating logic is applied.
+        #endif
 
         if(clutchStartTime == 0 || millis() - clutchStartTime > CLUTCH_DELAY + CLUTCH_RAMP) // Reset clutchStartTime once clutch logic is complete
         {
