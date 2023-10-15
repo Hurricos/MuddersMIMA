@@ -61,6 +61,7 @@ if(requestType == REQUEST_CLUTCH)
         if(elapsedTime < CLUTCH_DELAY)
         {
             // Wait for the clutch delay before starting the ramp.
+            applySignal(MAMODE1_STATE_IS_IDLE, 50);
             return;
         }
         else if(elapsedTime < (CLUTCH_DELAY + CLUTCH_RAMP))

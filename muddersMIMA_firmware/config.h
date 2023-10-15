@@ -33,7 +33,7 @@
 
   //Low power mode to avoid false IGBT short-circuit events, jerking, and P1440 codes. Only active if STACK_IS_60S is defined above.
   const unsigned long DERATE_UNDER_RPM = 1900; //Max assist/regen limited under this RPM.
-  const unsigned long DERATE_PERCENT = 90; //Percentage of max power.
+  const unsigned long DERATE_PERCENT = 80; //Percentage of max power.
 
 
 #endif
