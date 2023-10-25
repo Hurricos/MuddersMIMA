@@ -32,8 +32,11 @@
   #define CLUTCH_RAMP    250 // Duration of ramp-up after CLUTCH_DELAY. Linear ramp from 0% to current joystick value. 
 
   //Low power mode to avoid false IGBT short-circuit events, jerking, and P1440 codes. Only active if STACK_IS_60S is defined above.
-  const unsigned long DERATE_UNDER_RPM = 1900; //Max assist/regen limited under this RPM.
+  const unsigned long DERATE_UNDER_RPM = 2000; //Max assist/regen limited under this RPM.
   const unsigned long DERATE_PERCENT = 80; //Percentage of max power.
+
+  //Minimum threshold before regen cuts out on deceleration.
+  #define MIN_REGEN_RPM 1300
 
 
 #endif

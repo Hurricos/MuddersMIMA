@@ -85,6 +85,14 @@ void mode_manualControl_new(void)
 			    useStoredJoystickValue = YES;
 		    }
 
+        // Check if the engine RPM is below threshold
+          if (engineRPM < MIN_REGEN_RPM) {
+          // Calculate the regen level based on engine RPM
+          // Regen ranges from 10% (maximum) to 50% (center) as engine RPM decreases below MIN_REGEN_RPM
+            int regenLevel = map(engineRPM, MIN_REGEN_RPM, MIN_REGEN_RPM - 250, joystick_percent, 50);
+          lowPowerLevel = regenLevel;
+          } 
+
         #ifdef STACK_IS_60S
           #ifdef SET_CURRENT_HACK_40
           // Check if the engine RPM is below threshold
