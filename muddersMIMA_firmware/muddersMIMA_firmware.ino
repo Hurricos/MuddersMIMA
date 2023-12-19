@@ -30,6 +30,7 @@ void loop()
 	brakeLights_handler();
 	operatingModes_handler();
 	USB_userInterface_handler();
+  engineSignals_handler();
 	
 	debugUSB_printLatestData();
 
