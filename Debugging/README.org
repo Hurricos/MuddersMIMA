@@ -1,0 +1,37 @@
+* TODO list for monitoring ACTTRQ's effect on belt slippage
+** Stage 0: Collect data
+*** TODO Reverse-engineer
+**** DONE OBDIIC&C RJ45 pinout
+- GND
+  - OBDII pin 5 (= 3 in my connector)
+  - TIA568-B BRN (pin 8)
+- H-line
+  - OBDII pin 14
+  - TIA568-B GRN/WHT (pin 3) 
+- SCS
+  - OBDII pin 9
+  - TIA568-B BRN/WHT (pin 7)
+- 12V
+  - OBDII pin 16
+  - TIA568-B ORG (pin 2)
+- K-line for curiosity
+  - OBDII pin 7
+  - TIA568-B GRN (pin 6)
+**** TODO Create wire
+- Vampire tap GND and H-line
+**** TODO OBDIIC&C queries
+- Serial comms details
+  - 9600, 1 start bit (low), 1 stop bit (high):
+  - https://github.com/doppelhub/G1_Honda_Insight_IMA/blob/master/OEM%20G1%20Honda%20Insight%20IMA%20Wiring/Data%20Gathered%20from%20OEM%20G1%20Honda%20Insight/H-line%20-%20Data.txt
+  - Identical to 8N1_9600
+***** TODO Record OBDIIC&C
+```sh
+socat -v READLINE /dev/ttyUSB0,b9600,raw,echo=0 2>log
+```
+** Stage 1: Monitoring
+*** MCM signal: ACTTRQ
+- Connect using a quick-clip
+- Pin-change interrupt
+*** Monitor LiControl serial
+- CMDPWR, TPS, MAP
+- 

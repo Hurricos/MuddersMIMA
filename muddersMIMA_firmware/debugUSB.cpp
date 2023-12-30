@@ -8,7 +8,7 @@
 
 #include "muddersMIMA.h"
 
-uint8_t dataTypeToStream = DEBUGUSB_STREAM_BUTTON;
+uint8_t dataTypeToStream = DEBUGUSB_STREAM_OEM_SIGNALS;
 uint32_t dataUpdatePeriod_ms = 250;
 
 /////////////////////////////////////////////////////////////////////////////////////////////
@@ -54,49 +54,17 @@ void debugUSB_printButtonStates(void)
 
 void debugUSB_printOEMsignals(void)
 {
-	Serial.print(F("\nMAMODE2:"));
-	if(ecm_getMAMODE2_state() == MAMODE2_STATE_IS_ASSIST) { Serial.print(F("Assist,  ")); }
-	else                                                  { Serial.print(F("Reg/Idle,")); }
-
-	Serial.print(F(" MAMODE1:"));
-	switch( ecm_getMAMODE1_state() )
-	{
-		case MAMODE1_STATE_IS_ERROR_LO:  Serial.print(F("Line LO, ")); break;
-		case MAMODE1_STATE_IS_PRESTART:  Serial.print(F("Prestart,")); break;
-		case MAMODE1_STATE_IS_ASSIST:    Serial.print(F("Assist,  ")); break;
-		case MAMODE1_STATE_IS_REGEN:     Serial.print(F("Regen,   ")); break;
-		case MAMODE1_STATE_IS_IDLE:      Serial.print(F("Standby, ")); break;
-		case MAMODE1_STATE_IS_AUTOSTOP:  Serial.print(F("AutoStop,")); break;
-		case MAMODE1_STATE_IS_START:     Serial.print(F("Starting,")); break;
-		case MAMODE1_STATE_IS_ERROR_HI:  Serial.print(F("Line HI, ")); break;
-		case MAMODE1_STATE_IS_UNDEFINED: Serial.print(F("Error,  ")); break;
-	}
-
-	Serial.print(F(" CLUTCH:"));
-	if(gpio_getClutchPosition() == CLUTCH_PEDAL_PRESSED) { Serial.print(F("Pressed, ")); }
-	else                                                 { Serial.print(F("Released,")); }
-
-	Serial.print(F(" BRAKE:"));
-	if(gpio_getBrakePosition_bool() == BRAKE_LIGHTS_ARE_ON) { Serial.print(F("Pressed, ")); }
-	else                                                    { Serial.print(F("Released,")); }
-
-	Serial.print(F(" CMDPWR:"));
-	Serial.print( ecm_getCMDPWR_percent() );
-	Serial.print('%');
-
-	Serial.print(F(" TPS:"));
+	Serial.print('C');
+	Serial.print( gpio_getMCM_CMDPWR_percent() );
+	Serial.print(F("\tT"));
 	Serial.print( adc_getECM_TPS_percent() );
-	Serial.print('%');
-
-	Serial.print(F(" MAP:"));
+	Serial.print(F("\tM"));
 	Serial.print( adc_getECM_MAP_percent() );
-	Serial.print('%');
-
-	Serial.print(F(" RPM:"));
+	Serial.print(F("\tR"));
 	Serial.print( engineSignals_getLatestRPM() );
-
-    Serial.print(F(" MPH:"));
+    Serial.print(F("\tS"));
 	Serial.print( engineSignals_getLatestVehicleMPH() );
+    Serial.println("");
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////
