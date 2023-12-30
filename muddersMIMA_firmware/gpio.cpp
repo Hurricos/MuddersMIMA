@@ -33,8 +33,8 @@ void gpio_begin(void)
   	//TCCR1A = 0b00000011; // 10bit
   	TCCR1B = 0b00001010; // x8 fast pwm
 
-  	// Pins D3 and D11 - 31.4 kHz (OEM is 20 kHz, but this is close enough)
-  	TCCR2B = 0b00000001; // x1 8bit
+  	// Pins D3 and D11 - move way down to 3.9 kHz (OEM is 20 kHz, but this is close enough)
+  	TCCR2B = 0b00000010; // x8 8bit
   	TCCR2A = 0b00000001; // phase correct
 }
 
