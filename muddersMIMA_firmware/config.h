@@ -17,4 +17,9 @@
 
 	#define INVERT_JOYSTICK_DIRECTION //comment to mirror joystick assist and regen directions
 
+	//'choose' your transmission type. This helps LiControl interpret different signals.
+		//#define TRANSMISSION_IS_MT
+		//#define TRANSMISSION_IS_CVT
+	// If you do not choose, certain features will be inaccessible.
+
 #endif
