@@ -8,7 +8,7 @@
 
 #include "muddersMIMA.h"
 
-uint8_t dataTypeToStream = DEBUGUSB_STREAM_BUTTON;
+uint8_t dataTypeToStream = DEBUGUSB_STREAM_OEM_SIGNALS;
 uint32_t dataUpdatePeriod_ms = 250;
 
 /////////////////////////////////////////////////////////////////////////////////////////////
@@ -81,12 +81,15 @@ void debugUSB_printOEMsignals(void)
 	else                                                    { Serial.print(F("Released,")); }
 
 	Serial.print(F(" CMDPWR:"));
-	Serial.print( ecm_getCMDPWR_percent() );
+	Serial.print( gpio_getMCM_CMDPWR_percent() );
 	Serial.print('%');
 
 	Serial.print(F(" TPS:"));
 	Serial.print( adc_getECM_TPS_percent() );
 	Serial.print('%');
+
+	Serial.print(F(" LUMI:"));
+	Serial.print( two_d_map_getLastUsedMapIndex() );
 
 	Serial.print(F(" MAP:"));
 	Serial.print( adc_getECM_MAP_percent() );
