@@ -7,21 +7,23 @@
 uint8_t joystick_percent_stored = JOYSTICK_NEUTRAL_NOM_PERCENT;
 bool useStoredJoystickValue = NO; //JTS2doLater: I'm not convinced this is required
 bool useSuggestedPedalAssist = YES;
+uint32_t time_latestBrakeLightsOn_ms = 0;
 
-const uint8_t map_TPS[9] = {6, 8, 10, 12, 15, 18, 30, 40, 50};
-const uint8_t map_VSS[8] = {10, 20, 30, 40, 50, 60, 70, 80};
-const uint8_t map_suggestedCMDPWR_TPS_VSS[72] =
+const uint8_t map_TPS[10] = {6, 7, 8, 10, 12, 15, 18, 30, 40, 50};
+const uint8_t map_VSS[9] = {6, 10, 20, 30, 40, 50, 60, 70, 80};
+const uint8_t map_suggestedCMDPWR_TPS_VSS[90] =
     {
 /*     TPS
-       BRK, 8%,10%,12%,15%,18%,23%,30%,50%, */
-        45, 48, 55, 60, 63, 65, 69, 73, 80, //VSS < 10
-        37, 38, 57, 62, 64, 69, 71, 75, 85, //VSS < 20
-        25, 32, 59, 64, 66, 71, 75, 85, 88, //VSS < 30
-        15, 25, 62, 67, 70, 75, 80, 88, 90, //VSS < 40
-        10, 15, 63, 70, 73, 78, 85, 90, 90, //VSS < 50
-        10, 10, 65, 73, 77, 85, 88, 90, 90, //VSS < 60
-        10, 10, 67, 75, 81, 88, 90, 90, 90, //VSS < 70
-        10, 10, 68, 79, 85, 90, 90, 90, 90  //VSS < 80
+       BRK, 7%, 8%,10%,12%,15%,18%,23%,30%,50%, */
+        50, 50, 50, 55, 60, 63, 65, 69, 73, 80, //VSS < 6
+        40, 50, 50, 55, 60, 63, 65, 69, 73, 80, //VSS < 10
+        33, 43, 43, 57, 62, 64, 69, 71, 75, 85, //VSS < 20
+        23, 37, 37, 59, 64, 66, 71, 75, 85, 88, //VSS < 30
+        15, 30, 30, 62, 67, 70, 75, 80, 88, 90, //VSS < 40
+        10, 23, 23, 63, 70, 73, 78, 85, 90, 90, //VSS < 50
+        10, 21, 21, 65, 73, 77, 85, 88, 90, 90, //VSS < 60
+        10, 18, 18, 67, 75, 81, 88, 90, 90, 90, //VSS < 70
+        10, 16, 16, 68, 79, 85, 90, 90, 90, 90  //VSS < 80
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////////
@@ -76,15 +78,6 @@ void mode_manualControl_new(void)
 		uint16_t joystick_percent = adc_readJoystick_percent();
         uint16_t throttle_percent = adc_getECM_TPS_percent();
 
-        //MIK2doNow: Why does brake detection not work consistently? Is it because we're pulsing the brake data somehow?
-        if(gpio_getBrakePosition_bool() == BRAKE_LIGHTS_ARE_ON)
-            throttle_percent = (throttle_percent >= 7) ? (throttle_percent - 2) : throttle_percent;
-
-        uint8_t pedalSuggestedCMDPWR = \
-          evaluate_2d_map(map_suggestedCMDPWR_TPS_VSS,
-                          map_TPS, 9, throttle_percent,
-                          map_VSS, 8, engineSignals_getLatestVehicleMPH());
-
 		if(gpio_getButton_momentary() == BUTTON_PRESSED)
 		{
 			//store joystick value when button is pressed
@@ -96,9 +89,21 @@ void mode_manualControl_new(void)
 		//JTS2doLater: Add clutch disable
 		if(gpio_getBrakePosition_bool() == BRAKE_LIGHTS_ARE_ON)
 		{
+            time_latestBrakeLightsOn_ms = millis();
 			useStoredJoystickValue = NO;
 			joystick_percent_stored = JOYSTICK_NEUTRAL_NOM_PERCENT;
 		} 
+
+        //MIK2doNow: Why does brake detection not work consistently? Is it because we're pulsing the brake data somehow?
+        //A: Yes, *maybe* intentionally; see https://github.com/doppelhub/MuddersMIMA/issues/10
+        if(millis() - time_latestBrakeLightsOn_ms < 500)
+            throttle_percent = throttle_percent - 2;
+        if (throttle_percent < 6) throttle_percent = 6;
+
+        uint8_t pedalSuggestedCMDPWR = \
+          evaluate_2d_map(map_suggestedCMDPWR_TPS_VSS,
+                          map_TPS, 10, throttle_percent,
+                          map_VSS, 9, engineSignals_getLatestVehicleMPH());
 
 		//use stored joystick value if conditions are right
 		if( (useStoredJoystickValue == YES                ) && //user previously pushed button
