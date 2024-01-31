@@ -2,6 +2,12 @@
 
 #include "muddersMIMA.h"
 
+uint8_t lastUsedMapIndex = 0;
+
+uint8_t two_d_map_getLastUsedMapIndex() {
+    return lastUsedMapIndex;
+}
+
 //Evaluate functions expressed as a 2D arrays
 
 /* Example map:
@@ -56,6 +62,8 @@ uint8_t evaluate_2d_map(uint8_t* map, uint8_t* dim1_map, uint8_t dim1_size, uint
         dim2_rem = 256;
         dim1_res = dim1_res - 2;
     }
+
+    lastUsedMapIndex = dim1_size * dim2_res + dim1_res                   ;
 
     uint8_t image = \
         ((map[dim1_size * dim2_res + dim1_res                   ] * (256 - dim1_rem)) / 256 * (256 - dim2_rem)) / 256 \
