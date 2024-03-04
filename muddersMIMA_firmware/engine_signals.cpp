@@ -7,14 +7,14 @@
 
 volatile uint16_t latestEngineRPM = 0;
 volatile uint16_t latestVehicleMPH = 0;
+volatile uint32_t vssTick_previous_us = 0;
+volatile uint32_t tachometerTick_previous_us = 0;
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 
 //PCMSK0 is configured so that only D8 causes interrupt (supports D8:D13)
 ISR(PCINT0_vect)
 {
-	static uint32_t tachometerTick_previous_us = 0;
-
 	if(gpio_engineRPM_getPinState() == HIGH)
 	{
 		uint32_t tachometerTick_now_us = micros();
@@ -31,8 +31,6 @@ ISR(PCINT0_vect)
 
 ISR(PCINT2_vect)
 {
-	static uint32_t vssTick_previous_us = 0;
-
 	if(gpio_VSS_getPinState() == HIGH)
 	{
 		uint32_t vssTick_now_us = micros();
@@ -70,5 +68,10 @@ void engineSignals_begin(void)
 
 void engineSignals_handler(void)
 {
-	;
+	if (vssTick_previous_us + 200000 < micros()) {
+		latestVehicleMPH = 0;
+	}
+	if (tachometerTick_previous_us + 200000 < micros()) {
+		latestEngineRPM = 0;
+	}
 }
