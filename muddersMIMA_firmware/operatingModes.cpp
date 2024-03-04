@@ -12,7 +12,8 @@ uint32_t time_latestBrakeLightsOff_ms = 0;
 
 const uint8_t map_TPS[11] = {4, 6, 7, 8, 10, 12, 16, 20, 30, 40, 50};
 const uint8_t map_VSS[10] = {5, 10, 15, 20, 30, 40, 50, 60, 70, 80};
-const uint8_t map_suggestedCMDPWR_TPS_VSS[110] =
+const uint8_t map_RPM_40x[2] = {20, 45};
+const uint8_t map_suggestedCMDPWR_TPS_VSS[220] =
     {
 /*     TPS
        BRL,BRI, 7%, 8%,10%,13%,16%,20%,30%,40%,50%, */
@@ -25,7 +26,36 @@ const uint8_t map_suggestedCMDPWR_TPS_VSS[110] =
         10, 15, 28, 28, 67, 74, 75, 80, 87, 90, 90, //VSS < 50
         10, 10, 25, 25, 68, 75, 79, 87, 90, 90, 90, //VSS < 60
         10, 10, 23, 23, 69, 76, 81, 87, 90, 90, 90, //VSS < 70
-        10, 10, 22, 22, 71, 78, 83, 87, 90, 90, 90  //VSS < 80
+        10, 10, 22, 22, 71, 78, 83, 87, 90, 90, 90, //VSS < 80
+        
+/*     TPS
+       BRL,BRI, 7%, 8%,10%,13%,16%,20%,30%,40%,50%, */
+        50, 50, 50, 50, 55, 58, 62, 64, 66, 74, 77, //VSS < 5
+        38, 43, 50, 50, 59, 63, 65, 67, 71, 77, 83, //VSS < 10
+        33, 38, 47, 47, 59, 63, 65, 67, 71, 77, 83, //VSS < 15
+        30, 33, 45, 45, 63, 66, 69, 73, 76, 82, 87, //VSS < 20
+        20, 29, 40, 40, 64, 68, 70, 75, 79, 87, 90, //VSS < 30
+        10, 23, 35, 35, 64, 71, 72, 77, 82, 90, 90, //VSS < 40
+        10, 15, 28, 28, 67, 74, 75, 80, 87, 90, 90, //VSS < 50
+        10, 10, 25, 25, 68, 75, 79, 87, 90, 90, 90, //VSS < 60
+        10, 10, 23, 23, 69, 76, 81, 87, 90, 90, 90, //VSS < 70
+        10, 10, 22, 22, 71, 78, 83, 87, 90, 90, 90 //VSS < 80
+
+// /*     TPS
+//        BRL,BRI, 7%, 8%,10%,13%,16%,20%,30%,40%,50%, */
+//         50, 50, 50, 50, 55, 58, 62, 64, 66, 74, 77, //VSS < 5
+//         38, 43, 50, 50, 59, 63, 65, 67, 71, 77, 83, //VSS < 10
+//         33, 38, 47, 47, 59, 63, 65, 67, 71, 77, 83, //VSS < 15
+//         28, 30, 45, 45, 63, 66, 69, 73, 76, 82, 87, //VSS < 20
+//         19, 20, 40, 40, 64, 68, 60, 60, 79, 87, 90, //VSS < 30
+//         10, 23, 35, 35, 64, 71, 60, 60, 82, 90, 90, //VSS < 40
+//         10, 15, 28, 28, 67, 74, 60, 60, 87, 90, 90, //VSS < 50
+//         // 19, 20, 40, 40, 64, 68, 70, 75, 79, 87, 90, //VSS < 30
+//         // 10, 23, 35, 35, 64, 71, 72, 77, 82, 90, 90, //VSS < 40
+//         // 10, 15, 28, 28, 67, 74, 75, 80, 87, 90, 90, //VSS < 50
+//         10, 10, 25, 25, 68, 75, 79, 87, 90, 90, 90, //VSS < 60
+//         10, 10, 23, 23, 69, 76, 81, 87, 90, 90, 90, //VSS < 70
+//         10, 10, 22, 22, 71, 78, 83, 87, 90, 90, 90  //VSS < 80
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////////
@@ -117,9 +147,10 @@ void mode_manualControl_new(void)
         if (throttle_percent < 2) throttle_percent = 2;
 
         uint8_t pedalSuggestedCMDPWR = \
-          evaluate_2d_map(map_suggestedCMDPWR_TPS_VSS,
+          evaluate_3d_map(map_suggestedCMDPWR_TPS_VSS,
                           map_TPS, 11, throttle_percent,
-                          map_VSS, 10, engineSignals_getLatestVehicleMPH());
+                          map_VSS, 10, engineSignals_getLatestVehicleMPH(),
+                          map_RPM_40x, 2, engineSignals_getLatestRPM() / 40);
 
 		//use stored joystick value if conditions are right
 		if( (useStoredJoystickValue == YES                ) && //user previously pushed button
@@ -151,10 +182,10 @@ void mode_manualControl_new(void)
 			joystick_percent = pedalSuggestedCMDPWR;
 		}
 
-        if      (joystick_percent > previousOutputCMDPWR_percent) { joystick_percent = previousOutputCMDPWR_percent + 1; }
-        else if (joystick_percent < previousOutputCMDPWR_percent) { joystick_percent = previousOutputCMDPWR_percent - 1; }
+        // if      (joystick_percent > previousOutputCMDPWR_percent) { joystick_percent = previousOutputCMDPWR_percent + 1; }
+        // else if (joystick_percent < previousOutputCMDPWR_percent) { joystick_percent = previousOutputCMDPWR_percent - 1; }
 
-        previousOutputCMDPWR_percent = joystick_percent;
+        // previousOutputCMDPWR_percent = joystick_percent;
 
 		//send assist/idle/regen value to MCM
 		if     (joystick_percent < JOYSTICK_MIN_ALLOWED_PERCENT) { mcm_setAllSignals(MAMODE1_STATE_IS_IDLE,   JOYSTICK_NEUTRAL_NOM_PERCENT); } //signal too low
