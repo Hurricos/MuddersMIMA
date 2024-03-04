@@ -60,7 +60,7 @@ uint8_t evaluate_2d_map(uint8_t* map, uint8_t* dim1_map, uint8_t dim1_size, uint
 
     if (dim2_res == dim2_size) {
         dim2_rem = 256;
-        dim1_res = dim1_res - 2;
+        dim2_res = dim2_res - 2;
     }
 
     lastUsedMapIndex = dim1_size * dim2_res + dim1_res                   ;
