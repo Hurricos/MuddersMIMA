@@ -97,6 +97,9 @@ void debugUSB_printOEMsignals(void)
 
     Serial.print(F(" MPH:"));
 	Serial.print( engineSignals_getLatestVehicleMPH() );
+
+    Serial.print(F(" VSSP:"));
+	Serial.print( engineSignals_getLatestTotalVSSPulses() );
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////

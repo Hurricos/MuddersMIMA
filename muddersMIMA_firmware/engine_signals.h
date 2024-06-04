@@ -11,6 +11,8 @@
 
 	void engineSignals_handler(void);
 
+	uint32_t engineSignals_getLatestTotalVSSPulses(void);
+
 	uint16_t engineSignals_getLatestRPM(void);
 
 	uint16_t engineSignals_getLatestVehicleMPH(void);

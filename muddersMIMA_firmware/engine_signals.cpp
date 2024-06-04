@@ -7,6 +7,7 @@
 
 volatile uint16_t latestEngineRPM = 0;
 volatile uint16_t latestVehicleMPH = 0;
+volatile uint32_t totalVSSPulses = 0;
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -40,6 +41,7 @@ ISR(PCINT2_vect)
 		uint32_t periodBetweenTicks_us = vssTick_now_us - vssTick_previous_us;
 
 		latestVehicleMPH = ONE_HOUR_IN_MICROSECONDS / periodBetweenTicks_us / 4250;
+        if(lastestVehicleMPH < 20) totalVSSPulses += 1;
 
 		vssTick_previous_us = vssTick_now_us;
 	}
@@ -52,6 +54,8 @@ uint16_t engineSignals_getLatestRPM(void) { return latestEngineRPM; }
 /////////////////////////////////////////////////////////////////////////////////////////////
 
 uint16_t engineSignals_getLatestVehicleMPH(void) { return latestVehicleMPH; }
+
+uint32_t engineSignals_getLatestTotalVSSPulses (void) { return totalVSSPulses; }
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 
