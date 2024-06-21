@@ -17,6 +17,18 @@ uint8_t adc_read10bValue_Percent(int adcChannel)
 	return percent;
 }
 
+////////////////////////////////////////////////////////////////////////////////////
+
+uint16_t adc_read10bValue_Permille(int adcChannel)
+{
+	uint16_t adcResult_counts = analogRead(adcChannel); //10b ADC
+	uint16_t permille = (uint16_t)(adcResult_counts * 0.978); //(counts/1023)*1000
+
+	if(permille > 1000) { permille = 1000; }
+
+	return permille;
+}
+
 //////////////////////////////////////////////////////////////////////////////////// 
 
 uint8_t adc_readJoystick_percent(void)
@@ -68,3 +80,4 @@ uint8_t adc_getECM_MAMODE1_percent(void)
 
 uint8_t adc_getECM_MAP_percent    (void) { return adc_read10bValue_Percent(PIN_MAP_SENSOR ); }
 uint8_t adc_getECM_TPS_percent    (void) { return adc_read10bValue_Percent(PIN_THROTTLE   ); }
+uint16_t adc_getECM_TPS_permille  (void) { return adc_read10bValue_Permille(PIN_THROTTLE   ); }

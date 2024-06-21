@@ -9,7 +9,7 @@
 	#define JOYSTICK_MAX_ALLOWED_PERCENT      95 //joystick only outputs up   to 90% of VCC //+2% guardband
 	#define JOYSTICK_MIN_ALLOWED_PERCENT       5 //joystick only outputs down to 10% of VCC //-2% guardband
 	#define JOYSTICK_NEUTRAL_NOM_PERCENT      50 //resting joystick position
-	#define JOYSTICK_NEUTRAL_ACCURACY_PERCENT  5 //datasheet specifies ±4%
+	#define JOYSTICK_NEUTRAL_ACCURACY_PERCENT  2 //datasheet specifies ±4% // TODO undo
 	#define JOYSTICK_NEUTRAL_MAX_PERCENT      (JOYSTICK_NEUTRAL_NOM_PERCENT + JOYSTICK_NEUTRAL_ACCURACY_PERCENT)
 	#define JOYSTICK_NEUTRAL_MIN_PERCENT      (JOYSTICK_NEUTRAL_NOM_PERCENT - JOYSTICK_NEUTRAL_ACCURACY_PERCENT)
 
@@ -25,5 +25,7 @@
 	uint8_t adc_getECM_MAP_percent(void);
 
 	uint8_t adc_getECM_TPS_percent(void);
+
+	uint16_t adc_getECM_TPS_permille(void);
 
 #endif

@@ -5,27 +5,26 @@
 #include "muddersMIMA.h"
 
 uint8_t joystick_percent_stored = JOYSTICK_NEUTRAL_NOM_PERCENT;
+uint16_t previousOutputCMDPWR_permille = 500;
 bool useStoredJoystickValue = NO; //JTS2doLater: I'm not convinced this is required
 bool useSuggestedPedalAssist = YES;
 uint32_t time_latestBrakeLightsOn_ms = 0;
 uint32_t time_latestBrakeLightsOff_ms = 0;
 
-const uint8_t map_TPS[11] = {4, 6, 7, 8, 10, 12, 16, 20, 30, 40, 50};
-const uint8_t map_VSS[10] = {5, 10, 15, 20, 30, 40, 50, 60, 70, 80};
-const uint8_t map_suggestedCMDPWR_TPS_VSS[110] =
+const uint16_t map_TPS[11] = {40, 60, 70, 80, 100, 120, 160, 200, 300, 400, 500};
+const uint16_t map_VSS[10] = {1, 10, 15, 20, 30, 40, 50, 60};
+const uint16_t map_suggestedCMDPWR_TPS_VSS[88] =
     {
 /*     TPS
        BRL,BRI, 7%, 8%,10%,13%,16%,20%,30%,40%,50%, */
-        50, 50, 50, 50, 55, 58, 62, 64, 66, 74, 77, //VSS < 5
-        38, 43, 50, 50, 59, 63, 65, 67, 71, 77, 83, //VSS < 10
-        38, 40, 47, 47, 59, 63, 65, 67, 71, 77, 83, //VSS < 15
-        33, 38, 45, 45, 63, 66, 69, 73, 76, 82, 87, //VSS < 20
+        50, 50, 50, 50, 55, 58, 62, 64, 66, 74, 77, //VSS < 0
+        42, 45, 50, 50, 59, 63, 65, 67, 71, 77, 83, //VSS < 10
+        40, 40, 47, 47, 59, 63, 65, 67, 71, 77, 83, //VSS < 15
+        37, 38, 45, 45, 63, 66, 69, 73, 76, 82, 87, //VSS < 20
         25, 32, 40, 40, 64, 68, 70, 75, 79, 87, 90, //VSS < 30
         10, 23, 35, 35, 64, 71, 72, 77, 82, 90, 90, //VSS < 40
         10, 15, 28, 28, 67, 74, 75, 80, 87, 90, 90, //VSS < 50
-        10, 10, 25, 25, 68, 75, 79, 87, 90, 90, 90, //VSS < 60
-        10, 10, 23, 23, 69, 76, 81, 87, 90, 90, 90, //VSS < 70
-        10, 10, 22, 22, 71, 78, 83, 87, 90, 90, 90  //VSS < 80
+        10, 10, 25, 25, 68, 75, 79, 87, 90, 90, 90 //VSS < 60
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////////
@@ -75,8 +74,6 @@ void mode_manualAssistRegen_ignoreECM(void)
 
 void mode_manualAssistRegen_withAutoStartStop(void)
 {
-    static uint16_t previousOutputCMDPWR_percent = 50;
-
 	brakeLights_setControlMode(BRAKE_LIGHT_AUTOMATIC);
 
 	if( (ecm_getMAMODE1_state() == MAMODE1_STATE_IS_REGEN ) ||
@@ -87,7 +84,7 @@ void mode_manualAssistRegen_withAutoStartStop(void)
 		//but we're in blended manual mode, so combine its signal cleverly with the joystick (either previously stored or value right now)
 
 		uint16_t joystick_percent = adc_readJoystick_percent();
-        uint16_t throttle_percent = adc_getECM_TPS_percent(); throttle_percent = max(throttle_percent, 7);
+        uint16_t throttle_permille = adc_getECM_TPS_permille(); throttle_permille = max(throttle_permille, 70);
 
 		if(gpio_getButton_momentary() == BUTTON_PRESSED)
 		{
@@ -103,23 +100,26 @@ void mode_manualAssistRegen_withAutoStartStop(void)
             time_latestBrakeLightsOn_ms = millis();
 			useStoredJoystickValue = NO;
 			joystick_percent_stored = JOYSTICK_NEUTRAL_NOM_PERCENT;
-		} else if(millis() - time_latestBrakeLightsOn_ms > 500)
+		} else if(millis() - time_latestBrakeLightsOn_ms > 200)
 			time_latestBrakeLightsOff_ms = millis();
 
         //MIK2doNow: Why does brake detection not work consistently? Is it because we're pulsing the brake data somehow?
         //A: Yes, *maybe* intentionally; see https://github.com/doppelhub/MuddersMIMA/issues/10
-        if(millis() - time_latestBrakeLightsOn_ms < 500) {
-            throttle_percent = max(throttle_percent - 2, 6);
-			if (millis() - time_latestBrakeLightsOff_ms > 2000) throttle_percent = max(throttle_percent - 1, 2);
-			if (millis() - time_latestBrakeLightsOff_ms > 4000) throttle_percent = max(throttle_percent - 1, 2);
+        if(millis() - time_latestBrakeLightsOn_ms < 200) {
+            throttle_permille = max(throttle_permille - 20, 60);
+            if (millis() - time_latestBrakeLightsOff_ms > 500) throttle_permille = max(throttle_permille - 5, 20);
+            if (millis() - time_latestBrakeLightsOff_ms > 1000) throttle_permille = max(throttle_permille - 5, 20);
+            if (millis() - time_latestBrakeLightsOff_ms > 1500) throttle_permille = max(throttle_permille - 5, 20);
+            if (millis() - time_latestBrakeLightsOff_ms > 2000) throttle_permille = max(throttle_permille - 5, 20);
+            if (millis() - time_latestBrakeLightsOff_ms > 2500) throttle_permille = max(throttle_permille - 5, 20);
         }
 
-        if (throttle_percent < 2) throttle_percent = 2;
+        if (throttle_permille < 20) throttle_permille = 20;
 
         uint8_t pedalSuggestedCMDPWR = \
           evaluate_2d_map(map_suggestedCMDPWR_TPS_VSS,
-                          map_TPS, 11, throttle_percent,
-                          map_VSS, 10, engineSignals_getLatestVehicleMPH());
+                          map_TPS, 11, throttle_permille,
+                          map_VSS, 8, engineSignals_getLatestVehicleMPH());
 
 		//use stored joystick value if conditions are right
 		if( (useStoredJoystickValue == YES                ) && //user previously pushed button
@@ -136,6 +136,11 @@ void mode_manualAssistRegen_withAutoStartStop(void)
 			joystick_percent = joystick_percent_stored;
 		}
 
+		// MIK2doNow: Track control "correctly"
+		// - Track which system is controlling CMDPWR
+		// - Consider what "neutral position" is based on this
+		// - Expose which subsystem is controlling CMDPWR so other methods can use it to change their behavior
+
 		//use the suggested assist if conditions are right
 		if( (useSuggestedPedalAssist == YES                ) &&
 			( ( (joystick_percent > JOYSTICK_NEUTRAL_MIN_PERCENT) && //joystick is neutral, or
@@ -151,10 +156,11 @@ void mode_manualAssistRegen_withAutoStartStop(void)
 			joystick_percent = pedalSuggestedCMDPWR;
 		}
 
-        if      (joystick_percent > previousOutputCMDPWR_percent) { joystick_percent = previousOutputCMDPWR_percent + 1; }
-        else if (joystick_percent < previousOutputCMDPWR_percent) { joystick_percent = previousOutputCMDPWR_percent - 1; }
-
-        previousOutputCMDPWR_percent = joystick_percent;
+        //MIK2reviewNow: While brake and throttle are released, slow down change in IMA power even more
+        uint8_t changeby_increment = (gpio_getBrakePosition_bool() == BRAKE_LIGHTS_ARE_OFF && adc_getECM_TPS_permille() < 83) ? 7 : 14;
+        //This is simulating something nicer -- tracking the rationale for the current change in control.
+        if		(joystick_percent * 10 > previousOutputCMDPWR_permille) { previousOutputCMDPWR_permille = previousOutputCMDPWR_permille + changeby_increment; joystick_percent = previousOutputCMDPWR_permille / 10; }
+        else if (joystick_percent * 10 < previousOutputCMDPWR_permille) { previousOutputCMDPWR_permille = previousOutputCMDPWR_permille - changeby_increment; joystick_percent = previousOutputCMDPWR_permille / 10; }
 
 		//send assist/idle/regen value to MCM
 		if     (joystick_percent < JOYSTICK_MIN_ALLOWED_PERCENT) { mcm_setAllSignals(MAMODE1_STATE_IS_IDLE,   JOYSTICK_NEUTRAL_NOM_PERCENT); } //signal too low
@@ -307,6 +313,7 @@ void operatingModes_handler(void)
 	{
 		//clear previously stored joystick value (from the last time we were in manual mode)
 		joystick_percent_stored = JOYSTICK_NEUTRAL_NOM_PERCENT;
+		previousOutputCMDPWR_permille = 500;
 		useStoredJoystickValue = NO;
 	}
 

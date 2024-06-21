@@ -87,7 +87,7 @@ void debugUSB_printOEMsignals(void)
 	Serial.print('%');
 
 	Serial.print(F(" TPS:"));
-	Serial.print( adc_getECM_TPS_percent() );
+	Serial.print( adc_getECM_TPS_permille() );
 	Serial.print('%');
 
 	Serial.print(F(" LUMI:"));
