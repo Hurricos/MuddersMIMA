@@ -10,6 +10,7 @@ bool useStoredJoystickValue = NO; //JTS2doLater: I'm not convinced this is requi
 bool useSuggestedPedalAssist = YES;
 uint32_t time_latestBrakeLightsOn_ms = 0;
 uint32_t time_latestBrakeLightsOff_ms = 0;
+bool holdingAutostopRegen = NO;
 
 const uint16_t map_TPS[11] = {40, 60, 70, 80, 100, 120, 160, 200, 300, 400, 500};
 const uint16_t map_VSS[10] = {1, 10, 15, 20, 30, 40, 50, 60};
@@ -76,10 +77,11 @@ void mode_manualAssistRegen_withAutoStartStop(void)
 {
 	brakeLights_setControlMode(BRAKE_LIGHT_AUTOMATIC);
 
-	if( (ecm_getMAMODE1_state() == MAMODE1_STATE_IS_REGEN ) ||
+	if( ((ecm_getMAMODE1_state() == MAMODE1_STATE_IS_REGEN ) && !(holdingAutostopRegen)) ||
 		(ecm_getMAMODE1_state() == MAMODE1_STATE_IS_IDLE  ) ||
 		(ecm_getMAMODE1_state() == MAMODE1_STATE_IS_ASSIST)  )
 	{
+        holdingAutostopRegen = NO;
 		//ECM is sending assist, idle, or regen signal...
 		//but we're in blended manual mode, so combine its signal cleverly with the joystick (either previously stored or value right now)
 
@@ -188,8 +190,18 @@ void mode_manualAssistRegen_withAutoStartStop(void)
 		joystick_percent_stored = JOYSTICK_NEUTRAL_NOM_PERCENT;
 		useStoredJoystickValue = NO;
 	}
-	else //ECM is sending autostop, start, or undefined signal
+	else if ((ecm_getMAMODE1_state() == MAMODE1_STATE_IS_AUTOSTOP) || (ecm_getMAMODE1_state() == MAMODE1_STATE_IS_REGEN && holdingAutostopRegen))
 	{
+        holdingAutostopRegen = YES;
+		//pass these signals through unmodified (so autostop works properly)
+		mcm_passUnmodifiedSignals_fromECM();
+
+		//clear stored assist/idle/regen setpoint
+		joystick_percent_stored = JOYSTICK_NEUTRAL_NOM_PERCENT;
+		useStoredJoystickValue = NO;
+	} else //ECM is sending start or undefined signal
+	{
+        holdingAutostopRegen = NO;
 		//pass these signals through unmodified (so autostop works properly)
 		mcm_passUnmodifiedSignals_fromECM();
 
