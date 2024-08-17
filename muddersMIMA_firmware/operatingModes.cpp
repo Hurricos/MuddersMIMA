@@ -159,10 +159,10 @@ void mode_manualAssistRegen_withAutoStartStop(void)
 		}
 
         //MIK2reviewNow: While brake and throttle are released, slow down change in IMA power even more
-        uint8_t changeby_increment = (gpio_getBrakePosition_bool() == BRAKE_LIGHTS_ARE_OFF && adc_getECM_TPS_permille() < 83) ? 7 : 14;
+        uint8_t changeby_increment = (gpio_getBrakePosition_bool() == BRAKE_LIGHTS_ARE_OFF && adc_getECM_TPS_permille() < 90) ? 3 : 6;
         //This is simulating something nicer -- tracking the rationale for the current change in control.
-        if		(joystick_percent * 10 > previousOutputCMDPWR_permille) { previousOutputCMDPWR_permille = previousOutputCMDPWR_permille + changeby_increment; joystick_percent = previousOutputCMDPWR_permille / 10; }
-        else if (joystick_percent * 10 < previousOutputCMDPWR_permille) { previousOutputCMDPWR_permille = previousOutputCMDPWR_permille - changeby_increment; joystick_percent = previousOutputCMDPWR_permille / 10; }
+        if		(joystick_percent * 10 > previousOutputCMDPWR_permille) { previousOutputCMDPWR_permille = previousOutputCMDPWR_permille + changeby_increment * (((joystick_percent * 10 - previousOutputCMDPWR_permille)/100)+1); joystick_percent = previousOutputCMDPWR_permille / 10; }
+        else if (joystick_percent * 10 < previousOutputCMDPWR_permille) { previousOutputCMDPWR_permille = previousOutputCMDPWR_permille - changeby_increment * (((previousOutputCMDPWR_permille - joystick_percent * 10)/100)+1); joystick_percent = previousOutputCMDPWR_permille / 10; }
 
 		//send assist/idle/regen value to MCM
 		if     (joystick_percent < JOYSTICK_MIN_ALLOWED_PERCENT) { mcm_setAllSignals(MAMODE1_STATE_IS_IDLE,   JOYSTICK_NEUTRAL_NOM_PERCENT); } //signal too low
