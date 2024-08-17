@@ -7,6 +7,7 @@
 uint8_t joystick_percent_stored = JOYSTICK_NEUTRAL_NOM_PERCENT;
 uint16_t previousOutputCMDPWR_permille = 500;
 int16_t previousOverRegenAdjustment_permille = 0;
+int32_t previousBrakingThrottleAdjustment_permillion = 0;
 bool useStoredJoystickValue = NO; //JTS2doLater: I'm not convinced this is required
 bool useSuggestedPedalAssist = YES;
 uint32_t time_latestBrakeLightsOn_ms = 0;
@@ -76,7 +77,7 @@ void mode_manualAssistRegen_ignoreECM(void)
 
 void mode_manualAssistRegen_withAutoStartStop(void)
 {
-	brakeLights_setControlMode(BRAKE_LIGHT_AUTOMATIC);
+	brakeLights_setControlMode(BRAKE_LIGHT_MONITOR_ONLY);
 
 	if( ((ecm_getMAMODE1_state() == MAMODE1_STATE_IS_REGEN ) && !(holdingAutostopRegen)) ||
 		(ecm_getMAMODE1_state() == MAMODE1_STATE_IS_IDLE  ) ||
@@ -109,13 +110,14 @@ void mode_manualAssistRegen_withAutoStartStop(void)
         //MIK2doNow: Why does brake detection not work consistently? Is it because we're pulsing the brake data somehow?
         //A: Yes, *maybe* intentionally; see https://github.com/doppelhub/MuddersMIMA/issues/10
         if(millis() - time_latestBrakeLightsOn_ms < 200) {
-            throttle_permille = max(throttle_permille - 20, 60);
-            if (millis() - time_latestBrakeLightsOff_ms > 500) throttle_permille = max(throttle_permille - 5, 20);
-            if (millis() - time_latestBrakeLightsOff_ms > 1000) throttle_permille = max(throttle_permille - 5, 20);
-            if (millis() - time_latestBrakeLightsOff_ms > 1500) throttle_permille = max(throttle_permille - 5, 20);
-            if (millis() - time_latestBrakeLightsOff_ms > 2000) throttle_permille = max(throttle_permille - 5, 20);
-            if (millis() - time_latestBrakeLightsOff_ms > 2500) throttle_permille = max(throttle_permille - 5, 20);
+          previousBrakingThrottleAdjustment_permillion += 100;
+        } else {
+          previousBrakingThrottleAdjustment_permillion *= 99;
+          previousBrakingThrottleAdjustment_permillion /= 100;
         }
+        if (previousBrakingThrottleAdjustment_permillion > 50000) previousBrakingThrottleAdjustment_permillion = 50000;
+        if (previousBrakingThrottleAdjustment_permillion < 0) previousBrakingThrottleAdjustment_permillion = 0;
+        throttle_permille = max(throttle_permille - previousBrakingThrottleAdjustment_permillion / 1E3, 20);
 
         if (throttle_permille < 20) throttle_permille = 20;
 
