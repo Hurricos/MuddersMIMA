@@ -6,6 +6,7 @@
 
 uint8_t joystick_percent_stored = JOYSTICK_NEUTRAL_NOM_PERCENT;
 uint16_t previousOutputCMDPWR_permille = 500;
+int16_t previousOverRegenAdjustment_permille = 0;
 bool useStoredJoystickValue = NO; //JTS2doLater: I'm not convinced this is required
 bool useSuggestedPedalAssist = YES;
 uint32_t time_latestBrakeLightsOn_ms = 0;
@@ -157,6 +158,21 @@ void mode_manualAssistRegen_withAutoStartStop(void)
 			//replace actual joystick position with previously stored value
 			joystick_percent = pedalSuggestedCMDPWR;
 		}
+
+        //MIK2reviewNow: Handle over-regen throttling dynamically
+        // Note: I suspect this clause not to work as it will hold the RPM on regen at above 1000 *specifically*
+        // there needs to be a "detente" where if more regen is actually needed then the RPMs are allowed to go lower?
+        if ( previousOutputCMDPWR_permille < 450 && engineSignals_getLatestVehicleMPH() > 5 && engineSignals_getLatestRPM() > FAS_MAX_STOPPED_RPM) {
+          if ( engineSignals_getLatestRPM() < 1000 ) previousOverRegenAdjustment_permille += 1;
+          if ( engineSignals_getLatestRPM() < 1100 ) previousOverRegenAdjustment_permille += 1;
+          if ( engineSignals_getLatestRPM() < 1200 ) previousOverRegenAdjustment_permille += 1;
+        }
+        previousOverRegenAdjustment_permille -= 1;
+
+        if ( previousOverRegenAdjustment_permille < 0 ) previousOverRegenAdjustment_permille = 0;
+
+        if (joystick_percent + previousOverRegenAdjustment_permille / 10 < 50) { joystick_percent += previousOverRegenAdjustment_permille / 10; }
+        else if (joystick_percent + previousOverRegenAdjustment_permille / 10 >= 50 && joystick_percent < 50) { joystick_percent = 50; }
 
         //MIK2reviewNow: While brake and throttle are released, slow down change in IMA power even more
         uint8_t changeby_increment = (gpio_getBrakePosition_bool() == BRAKE_LIGHTS_ARE_OFF && adc_getECM_TPS_permille() < 90) ? 3 : 6;
