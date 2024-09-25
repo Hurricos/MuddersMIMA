@@ -14,15 +14,15 @@ uint32_t time_latestBrakeLightsOn_ms = 0;
 uint32_t time_latestBrakeLightsOff_ms = 0;
 bool holdingAutostopRegen = NO;
 
-const uint16_t map_TPS[11] = {40, 60, 70, 80, 100, 120, 160, 200, 300, 400, 500};
+const uint16_t map_TPS[11] = {10, 60, 70, 80, 100, 120, 160, 200, 300, 400, 500};
 const uint16_t map_VSS[10] = {1, 10, 15, 20, 30, 40, 50, 60};
 const uint16_t map_suggestedCMDPWR_TPS_VSS[88] =
     {
 /*     TPS
        BRL,BRI, 7%, 8%,10%,13%,16%,20%,30%,40%,50%, */
         50, 50, 50, 50, 55, 58, 62, 64, 66, 74, 77, //VSS < 0
-        40, 45, 50, 50, 59, 63, 65, 67, 71, 77, 83, //VSS < 10
-        38, 40, 47, 47, 59, 63, 65, 67, 71, 77, 83, //VSS < 15
+        41, 44, 50, 50, 59, 63, 65, 67, 71, 77, 83, //VSS < 10
+        37, 40, 47, 47, 59, 63, 65, 67, 71, 77, 83, //VSS < 15
         33, 36, 45, 45, 63, 66, 69, 73, 76, 82, 87, //VSS < 20
         25, 32, 40, 40, 64, 68, 70, 75, 79, 87, 90, //VSS < 30
         10, 23, 35, 35, 64, 71, 72, 77, 82, 90, 90, //VSS < 40
@@ -109,17 +109,14 @@ void mode_manualAssistRegen_withAutoStartStop(void)
 
         //MIK2doNow: Why does brake detection not work consistently? Is it because we're pulsing the brake data somehow?
         //A: Yes, *maybe* intentionally; see https://github.com/doppelhub/MuddersMIMA/issues/10
-        if(millis() - time_latestBrakeLightsOn_ms < 200) {
-          previousBrakingThrottleAdjustment_permillion += 100;
+        if(millis() - time_latestBrakeLightsOn_ms < 100) {
+          previousBrakingThrottleAdjustment_permillion += 500;
         } else {
-          previousBrakingThrottleAdjustment_permillion *= 99;
-          previousBrakingThrottleAdjustment_permillion /= 100;
+          previousBrakingThrottleAdjustment_permillion -= 1000;
         }
-        if (previousBrakingThrottleAdjustment_permillion > 50000) previousBrakingThrottleAdjustment_permillion = 50000;
+        if (previousBrakingThrottleAdjustment_permillion > 70000) previousBrakingThrottleAdjustment_permillion = 70000;
         if (previousBrakingThrottleAdjustment_permillion < 0) previousBrakingThrottleAdjustment_permillion = 0;
-        throttle_permille = max(throttle_permille - previousBrakingThrottleAdjustment_permillion / 1E3, 20);
-
-        if (throttle_permille < 20) throttle_permille = 20;
+        throttle_permille = max(throttle_permille - previousBrakingThrottleAdjustment_permillion / 1E3, 10);
 
         uint8_t pedalSuggestedCMDPWR = \
           evaluate_2d_map(map_suggestedCMDPWR_TPS_VSS,
@@ -165,11 +162,13 @@ void mode_manualAssistRegen_withAutoStartStop(void)
         // Note: I suspect this clause not to work as it will hold the RPM on regen at above 1000 *specifically*
         // there needs to be a "detente" where if more regen is actually needed then the RPMs are allowed to go lower?
         if ( previousOutputCMDPWR_permille < 450 && engineSignals_getLatestVehicleMPH() > 5 && engineSignals_getLatestRPM() > FAS_MAX_STOPPED_RPM) {
+          if ( engineSignals_getLatestRPM() < 900 ) previousOverRegenAdjustment_permille += 2;
+          if ( engineSignals_getLatestRPM() < 950 ) previousOverRegenAdjustment_permille += 1;
           if ( engineSignals_getLatestRPM() < 1000 ) previousOverRegenAdjustment_permille += 1;
+          if ( engineSignals_getLatestRPM() < 1050 ) previousOverRegenAdjustment_permille += 1;
           if ( engineSignals_getLatestRPM() < 1100 ) previousOverRegenAdjustment_permille += 1;
-          if ( engineSignals_getLatestRPM() < 1200 ) previousOverRegenAdjustment_permille += 1;
         }
-        previousOverRegenAdjustment_permille -= 1;
+        previousOverRegenAdjustment_permille -= previousOverRegenAdjustment_permille / 50 + ( random(0, 50) < previousOverRegenAdjustment_permille % 50 ? 1 : 0);
 
         if ( previousOverRegenAdjustment_permille < 0 ) previousOverRegenAdjustment_permille = 0;
 
@@ -177,7 +176,7 @@ void mode_manualAssistRegen_withAutoStartStop(void)
         else if (joystick_percent + previousOverRegenAdjustment_permille / 10 >= 50 && joystick_percent < 50) { joystick_percent = 50; }
 
         //MIK2reviewNow: While brake and throttle are released, slow down change in IMA power even more
-        uint8_t changeby_increment = (gpio_getBrakePosition_bool() == BRAKE_LIGHTS_ARE_OFF && adc_getECM_TPS_permille() < 90) ? 3 : 6;
+        uint8_t changeby_increment = (gpio_getBrakePosition_bool() == BRAKE_LIGHTS_ARE_OFF && adc_getECM_TPS_permille() < 90) ? 3 : 9;
         //This is simulating something nicer -- tracking the rationale for the current change in control.
         if		(joystick_percent * 10 > previousOutputCMDPWR_permille) { previousOutputCMDPWR_permille = previousOutputCMDPWR_permille + changeby_increment * (((joystick_percent * 10 - previousOutputCMDPWR_permille)/100)+1); joystick_percent = previousOutputCMDPWR_permille / 10; }
         else if (joystick_percent * 10 < previousOutputCMDPWR_permille) { previousOutputCMDPWR_permille = previousOutputCMDPWR_permille - changeby_increment * (((previousOutputCMDPWR_permille - joystick_percent * 10)/100)+1); joystick_percent = previousOutputCMDPWR_permille / 10; }
