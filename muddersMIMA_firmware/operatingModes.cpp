@@ -4,6 +4,7 @@
 
 #include "muddersMIMA.h"
 
+uint8_t joystick_percent_stored_ignoreecm = JOYSTICK_NEUTRAL_NOM_PERCENT;
 uint8_t joystick_percent_stored = JOYSTICK_NEUTRAL_NOM_PERCENT;
 uint16_t previousOutputCMDPWR_permille = 500;
 int16_t previousOverRegenAdjustment_permille = 0;
@@ -57,20 +58,55 @@ void mode_manualAssistRegen_ignoreECM(void)
 {
 	brakeLights_setControlMode(BRAKE_LIGHT_AUTOMATIC);
 
+	//we're in blended manual mode, so combine the stored and actual joystick value
+
 	uint16_t joystick_percent = adc_readJoystick_percent();
 
+	if(gpio_getButton_momentary() == BUTTON_PRESSED)
+	{
+		//store joystick value when button is pressed
+		joystick_percent_stored_ignoreecm = joystick_percent;
+		useStoredJoystickValue = YES;
+	}
+
+	//disable stored joystick value if user is braking
+	//JTS2doLater: Add clutch disable
+	if(gpio_getBrakePosition_bool() == BRAKE_LIGHTS_ARE_ON)
+	{
+		useStoredJoystickValue = NO;
+		joystick_percent_stored_ignoreecm = JOYSTICK_NEUTRAL_NOM_PERCENT;
+	}
+
+	//use stored joystick value if conditions are right
+	if( (useStoredJoystickValue == YES                ) && //user previously pushed button
+		( ( (joystick_percent > JOYSTICK_NEUTRAL_MIN_PERCENT) && //joystick is neutral, or
+		    (joystick_percent < JOYSTICK_NEUTRAL_MAX_PERCENT)
+          ) ||
+          ( (joystick_percent < joystick_percent_stored_ignoreecm) && //joystick is less than stored value if assist, or
+            (joystick_percent > JOYSTICK_NEUTRAL_MAX_PERCENT)
+          ) ||
+          ( (joystick_percent > joystick_percent_stored_ignoreecm) && //joystick is more than stored value if regen
+            (joystick_percent < JOYSTICK_NEUTRAL_MIN_PERCENT) ) ) )
+	{
+		//replace actual joystick position with previously stored value
+		joystick_percent = joystick_percent_stored_ignoreecm;
+	}
+
+	//send assist/idle/regen value to MCM
 	if     (joystick_percent < JOYSTICK_MIN_ALLOWED_PERCENT) { mcm_setAllSignals(MAMODE1_STATE_IS_IDLE,   JOYSTICK_NEUTRAL_NOM_PERCENT); } //signal too low
 	else if(joystick_percent < JOYSTICK_NEUTRAL_MIN_PERCENT) { mcm_setAllSignals(MAMODE1_STATE_IS_REGEN,  joystick_percent);             } //manual regen
 	else if(joystick_percent < JOYSTICK_NEUTRAL_MAX_PERCENT) {
 		if(gpio_getButton_momentary() == BUTTON_PRESSED && engineSignals_getLatestRPM() < FAS_MAX_STOPPED_RPM)
-		{
-			mcm_setMAMODE1_state(MAMODE1_STATE_IS_START);
-			mcm_setCMDPWR_percent(50);
-		}
-		else { mcm_setAllSignals(MAMODE1_STATE_IS_IDLE,   joystick_percent); }
-	} //standby
+    	{
+    		mcm_setMAMODE1_state(MAMODE1_STATE_IS_START);
+    		mcm_setCMDPWR_percent(50);
+    	}
+    	else { mcm_setAllSignals(MAMODE1_STATE_IS_IDLE,   joystick_percent); }
+    }
 	else if(joystick_percent < JOYSTICK_MAX_ALLOWED_PERCENT) { mcm_setAllSignals(MAMODE1_STATE_IS_ASSIST, joystick_percent);             } //manual assist
 	else                                                     { mcm_setAllSignals(MAMODE1_STATE_IS_IDLE,   JOYSTICK_NEUTRAL_NOM_PERCENT); } //signal too high
+
+   	brakeLights_setControlMode(BRAKE_LIGHT_AUTOMATIC);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////
