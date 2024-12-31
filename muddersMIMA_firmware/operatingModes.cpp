@@ -22,7 +22,7 @@ const uint16_t map_suggestedCMDPWR_TPS_VSS[88] =
 /*     TPS
        BRL,BRI, 7%, 8%,10%,13%,16%,20%,30%,40%,50%, */
         50, 50, 50, 50, 55, 58, 62, 64, 66, 74, 77, //VSS < 0
-        41, 44, 50, 50, 59, 63, 65, 67, 71, 77, 83, //VSS < 10
+        42, 45, 50, 50, 59, 63, 65, 67, 71, 77, 83, //VSS < 10
         37, 40, 47, 47, 59, 63, 65, 67, 71, 77, 83, //VSS < 15
         33, 36, 45, 45, 63, 66, 69, 73, 76, 82, 87, //VSS < 20
         25, 32, 40, 40, 64, 68, 70, 75, 79, 87, 90, //VSS < 30
@@ -198,13 +198,13 @@ void mode_manualAssistRegen_withAutoStartStop(void)
         // Note: I suspect this clause not to work as it will hold the RPM on regen at above 1000 *specifically*
         // there needs to be a "detente" where if more regen is actually needed then the RPMs are allowed to go lower?
         if ( previousOutputCMDPWR_permille < 450 && engineSignals_getLatestVehicleMPH() > 5 && engineSignals_getLatestRPM() > FAS_MAX_STOPPED_RPM) {
-          if ( engineSignals_getLatestRPM() < 900 ) previousOverRegenAdjustment_permille += 2;
+          if ( engineSignals_getLatestRPM() < 900 ) previousOverRegenAdjustment_permille += 1;
           if ( engineSignals_getLatestRPM() < 950 ) previousOverRegenAdjustment_permille += 1;
           if ( engineSignals_getLatestRPM() < 1000 ) previousOverRegenAdjustment_permille += 1;
-          if ( engineSignals_getLatestRPM() < 1050 ) previousOverRegenAdjustment_permille += 1;
           if ( engineSignals_getLatestRPM() < 1100 ) previousOverRegenAdjustment_permille += 1;
+          if ( engineSignals_getLatestRPM() < 1166 ) previousOverRegenAdjustment_permille += 1;
         }
-        previousOverRegenAdjustment_permille -= previousOverRegenAdjustment_permille / 50 + ( random(0, 50) < previousOverRegenAdjustment_permille % 50 ? 1 : 0);
+        previousOverRegenAdjustment_permille -= previousOverRegenAdjustment_permille / 100 + ( random(0, 100) < previousOverRegenAdjustment_permille % 100 ? 1 : 0);
 
         if ( previousOverRegenAdjustment_permille < 0 ) previousOverRegenAdjustment_permille = 0;
 
@@ -212,7 +212,7 @@ void mode_manualAssistRegen_withAutoStartStop(void)
         else if (joystick_percent + previousOverRegenAdjustment_permille / 10 >= 50 && joystick_percent < 50) { joystick_percent = 50; }
 
         //MIK2reviewNow: While brake and throttle are released, slow down change in IMA power even more
-        uint8_t changeby_increment = (gpio_getBrakePosition_bool() == BRAKE_LIGHTS_ARE_OFF && adc_getECM_TPS_permille() < 90) ? 3 : 9;
+        uint8_t changeby_increment = (gpio_getBrakePosition_bool() == BRAKE_LIGHTS_ARE_OFF && adc_getECM_TPS_permille() < 90) ? 1 : 3;
         //This is simulating something nicer -- tracking the rationale for the current change in control.
         if		(joystick_percent * 10 > previousOutputCMDPWR_permille) { previousOutputCMDPWR_permille = previousOutputCMDPWR_permille + changeby_increment * (((joystick_percent * 10 - previousOutputCMDPWR_permille)/100)+1); joystick_percent = previousOutputCMDPWR_permille / 10; }
         else if (joystick_percent * 10 < previousOutputCMDPWR_permille) { previousOutputCMDPWR_permille = previousOutputCMDPWR_permille - changeby_increment * (((previousOutputCMDPWR_permille - joystick_percent * 10)/100)+1); joystick_percent = previousOutputCMDPWR_permille / 10; }
